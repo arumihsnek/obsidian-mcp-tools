@@ -83,8 +83,10 @@ export class ToolRegistryClass<
     return this;
   };
 
-  list = () => {
+  list = (modelType: 'openai' | 'gemini' | 'anthropic' = 'openai') => {
     const simplifiedTools = Array.from(this.enabled.values()).map(schema => {
+      // Simplificación más agresiva para Gemini
+      const simplifyForGemini = modelType === 'gemini';
       const tool = {
         name: (schema.get("name").toJsonSchema() as any).const,
         description: schema.description,
@@ -171,6 +173,7 @@ export class ToolRegistryClass<
   };
 
   dispatch = async <Schema extends TSchema>(
+    modelType: 'openai' | 'gemini' | 'anthropic' = 'openai',
     params: Schema["infer"],
     context: HandlerContext,
   ) => {

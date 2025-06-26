@@ -14,8 +14,10 @@ import {
 export class ObsidianMcpServer {
   private server: Server;
   private tools: ToolRegistry;
+  private currentModel: 'openai' | 'gemini' | 'anthropic' = 'openai';
 
-  constructor() {
+  constructor(initialModel: 'openai' | 'gemini' | 'anthropic' = 'openai') {
+    this.currentModel = initialModel;
     this.server = new Server(
       {
         name: "obsidian-mcp-tools",
@@ -61,6 +63,17 @@ export class ObsidianMcpServer {
       logger.debug("Request handled", { response });
       return response;
     });
+  }
+
+  setModel(newModel: 'openai' | 'gemini' | 'anthropic') {
+    this.currentModel = newModel;
+    logger.info(`Changed model to ${newModel}`);
+    // Aquí podrías reinicializar conexiones si es necesario
+    return this;
+  }
+
+  getCurrentModel() {
+    return this.currentModel;
   }
 
   async run() {
