@@ -57,11 +57,23 @@ export class ObsidianMcpServer {
     this.server.setRequestHandler(ListToolsRequestSchema, this.tools.list);
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       logger.debug("Handling request", { request });
-      const response = await this.tools.dispatch(
-        this.currentModel,
-        request.params,
-        { server: this.server }
-      );
+      try {
+        const response = await this.tools.dispatch(
+          this.currentModel,
+          request.params,
+          { server: this.server }
+        );
+        return response;
+      } catch (error) {
+        logger.error("Tool dispatch error", { error });
+        return {
+          content: [{
+            type: "text",
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`
+          }],
+          isError: true
+        };
+      }
       logger.debug("Request handled", { response });
       return response;
     });
@@ -85,9 +97,9 @@ export class ObsidianMcpServer {
       await this.server.connect(transport);
       logger.debug("Server started successfully");
     } catch (err) {
-      logger.fatal("Failed to start server", {
-        error: err instanceof Error ? err.message : String(err),
-      });
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.fatal("Failed to start server", { error: error.message });
+      console.error("[MCP Tools Error]", error);
       process.exit(1);
     }
   }
