@@ -101,34 +101,47 @@ export class ToolRegistryClass<
           }
         }
 
-        // Process anyOf array of const objects -> convert to enum
+        // Process anyOf array - ensure enums are only for strings
         if (obj.anyOf && Array.isArray(obj.anyOf)) {
-          const allConst = obj.anyOf.every((item: any) => 
-            item && typeof item === 'object' && item.const !== undefined
+          const allStringConst = obj.anyOf.every((item: any) =>
+            item && typeof item === 'object' && 
+            (item.const === undefined || typeof item.const === 'string')
           );
-          if (allConst) {
-            obj.enum = obj.anyOf.map((item: any) => item.const);
+          
+          if (allStringConst) {
+            const enumValues = obj.anyOf
+              .filter((item: any) => item.const !== undefined)
+              .map((item: any) => item.const);
+            
+            if (enumValues.length > 0) {
+              obj.type = "string";
+              obj.enum = enumValues;
+            }
             delete obj.anyOf;
           }
         }
 
-        // Replace single const with enum
-        if (obj.const !== undefined) {
+        // Only allow enum for string type
+        if (obj.const !== undefined && typeof obj.const === 'string') {
+          obj.type = "string";
           obj.enum = [obj.const];
           delete obj.const;
         }
 
-        // Adjust exclusiveMinimum: true -> increment minimum by 1
-        if (obj.exclusiveMinimum === true && typeof obj.minimum === 'number') {
-          obj.minimum = obj.minimum + 1;
-          delete obj.exclusiveMinimum;
-        } else if (obj.exclusiveMinimum !== undefined) {
+        // Remove numeric validation that might conflict with Gemini
+        if (obj.exclusiveMinimum !== undefined) {
           delete obj.exclusiveMinimum;
         }
+        if (obj.minimum !== undefined && obj.type !== "number") {
+          delete obj.minimum;
+        }
 
-        // Remove additionalProperties
+        // Ensure clean schema for Gemini
         if (obj.additionalProperties !== undefined) {
           delete obj.additionalProperties;
+        }
+        if (obj.type === undefined && obj.enum) {
+          obj.type = "string";
         }
       }
 
