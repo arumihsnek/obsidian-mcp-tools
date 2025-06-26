@@ -172,12 +172,13 @@ export class ToolRegistryClass<
     const fixed = { ...params.arguments };
     for (const [key, value] of Object.entries(args)) {
       const valueSchema = argsSchema.get(key).exclude("undefined");
-      if (
-        valueSchema.expression === "boolean" &&
-        typeof value === "string" &&
-        ["true", "false"].includes(value)
-      ) {
-        fixed[key] = value === "true";
+      if (valueSchema.expression === "'boolean'") {
+        // Convert string 'true'/'false' to boolean if needed
+        if (typeof value === 'string' && ['true', 'false'].includes(value.toLowerCase())) {
+          fixed[key] = value.toLowerCase() === 'true';
+        } else if (typeof value === 'boolean') {
+          fixed[key] = value;
+        }
       }
     }
 
