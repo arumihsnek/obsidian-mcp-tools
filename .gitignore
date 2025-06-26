@@ -181,3 +181,11 @@ bin/
 docs/planning/
 data.json
 cline_docs/temp/
+
+# Aider files
+
+.aider*
+
+# Continue files
+
+.continue/
