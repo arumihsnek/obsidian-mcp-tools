@@ -57,9 +57,11 @@ export class ObsidianMcpServer {
     this.server.setRequestHandler(ListToolsRequestSchema, this.tools.list);
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       logger.debug("Handling request", { request });
-      const response = await this.tools.dispatch(request.params, {
-        server: this.server,
-      });
+      const response = await this.tools.dispatch(
+        this.currentModel,
+        request.params,
+        { server: this.server }
+      );
       logger.debug("Request handled", { response });
       return response;
     });

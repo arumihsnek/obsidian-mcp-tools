@@ -13,12 +13,7 @@ describe("Gemini Compatibility", () => {
         arguments: {
           url: "string",
           "raw?": type("boolean").describe("Test parameter"),
-          "format?": type({
-            anyOf: [
-              { const: "markdown" },
-              { const: "html" }
-            ]
-          })
+          "format?": type('"markdown" | "html"')
         },
       }),
       async () => ({ content: [] })
@@ -61,7 +56,7 @@ describe("Gemini Compatibility", () => {
       }
     };
     
-    const result = tools.dispatch('gemini', params, {});
+    const result = await tools.dispatch('gemini', params, {});
     expect(result.arguments.flag).toBe(true);
   });
 });
