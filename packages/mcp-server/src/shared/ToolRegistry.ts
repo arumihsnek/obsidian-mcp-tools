@@ -101,23 +101,30 @@ export class ToolRegistryClass<
           }
         }
 
-        // Process anyOf array - ensure enums are only for strings
+        // Remove unsupported schema fields for Gemini
+        const unsupportedFields = ['prefixItems', '$defs', 'items'];
+        unsupportedFields.forEach(field => {
+          if (obj[field] !== undefined) {
+            delete obj[field];
+          }
+        });
+
+        // Process anyOf array - convert to simple enum if possible
         if (obj.anyOf && Array.isArray(obj.anyOf)) {
-          const allStringConst = obj.anyOf.every((item: any) =>
-            item && typeof item === 'object' && 
-            (item.const === undefined || typeof item.const === 'string')
+          const isSimpleEnum = obj.anyOf.every((item: any) => 
+            item && typeof item === 'object' && item.const !== undefined
           );
           
-          if (allStringConst) {
+          if (isSimpleEnum) {
             const enumValues = obj.anyOf
-              .filter((item: any) => item.const !== undefined)
-              .map((item: any) => item.const);
+              .map((item: any) => item.const)
+              .filter((val: any) => val !== undefined);
             
             if (enumValues.length > 0) {
-              obj.type = "string";
+              obj.type = typeof enumValues[0];
               obj.enum = enumValues;
+              delete obj.anyOf;
             }
-            delete obj.anyOf;
           }
         }
 
