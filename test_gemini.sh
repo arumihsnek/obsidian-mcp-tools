@@ -2,7 +2,11 @@
 
 # Construir el servidor
 cd packages/mcp-server
+mkdir -p ../../bin
 bun run build
+
+# Dar permisos de ejecución al binario
+chmod +x ../../bin/mcp-server
 
 # Ejecutar servidor en segundo plano con la variable de entorno
 cd ../..
