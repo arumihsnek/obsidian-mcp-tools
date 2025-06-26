@@ -95,7 +95,7 @@ export class ToolRegistryClass<
       function simplifySchema(obj: any) {
         if (typeof obj !== 'object' || obj === null) return;
 
-        if (obj.hasOwnProperty('additionalProperties')) {
+        if (Object.prototype.hasOwnProperty.call(obj, 'additionalProperties')) {
           delete obj.additionalProperties;
         }
         for (const key in obj) {
