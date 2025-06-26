@@ -101,55 +101,38 @@ export class ToolRegistryClass<
           }
         }
 
-        // Remove unsupported schema fields for Gemini
-        const unsupportedFields = ['prefixItems', '$defs', 'items'];
+        // Remove all complex schema features
+        const unsupportedFields = [
+          'prefixItems', '$defs', 'items', 
+          'anyOf', 'allOf', 'oneOf',
+          'additionalProperties', 'patternProperties',
+          'dependencies', 'propertyNames'
+        ];
+        
         unsupportedFields.forEach(field => {
           if (obj[field] !== undefined) {
             delete obj[field];
           }
         });
 
-        // Process anyOf array - convert to simple enum if possible
-        if (obj.anyOf && Array.isArray(obj.anyOf)) {
-          const isSimpleEnum = obj.anyOf.every((item: any) => 
-            item && typeof item === 'object' && item.const !== undefined
-          );
-          
-          if (isSimpleEnum) {
-            const enumValues = obj.anyOf
-              .map((item: any) => item.const)
-              .filter((val: any) => val !== undefined);
-            
-            if (enumValues.length > 0) {
-              obj.type = typeof enumValues[0];
-              obj.enum = enumValues;
-              delete obj.anyOf;
-            }
-          }
-        }
-
-        // Only allow enum for string type
-        if (obj.const !== undefined && typeof obj.const === 'string') {
-          obj.type = "string";
+        // Convert const to enum if needed
+        if (obj.const !== undefined) {
           obj.enum = [obj.const];
+          obj.type = typeof obj.const === 'number' ? 'number' : 'string';
           delete obj.const;
         }
 
-        // Remove numeric validation that might conflict with Gemini
-        if (obj.exclusiveMinimum !== undefined) {
-          delete obj.exclusiveMinimum;
-        }
-        if (obj.minimum !== undefined && obj.type !== "number") {
-          delete obj.minimum;
+        // Basic type validation
+        if (obj.type === undefined && obj.enum) {
+          obj.type = typeof obj.enum[0] === 'number' ? 'number' : 'string';
         }
 
-        // Ensure clean schema for Gemini
-        if (obj.additionalProperties !== undefined) {
-          delete obj.additionalProperties;
-        }
-        if (obj.type === undefined && obj.enum) {
-          obj.type = "string";
-        }
+        // Remove numeric validation
+        ['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum'].forEach(field => {
+          if (obj[field] !== undefined) {
+            delete obj[field];
+          }
+        });
       }
 
       simplifySchema(tool.inputSchema);
@@ -172,10 +155,12 @@ export class ToolRegistryClass<
     const fixed = { ...params.arguments };
     for (const [key, value] of Object.entries(args)) {
       const valueSchema = argsSchema.get(key).exclude("undefined");
-      if (valueSchema.expression === "'boolean'") {
-        // Convert string 'true'/'false' to boolean if needed
-        if (typeof value === 'string' && ['true', 'false'].includes(value.toLowerCase())) {
+      if (valueSchema.expression === "boolean") {
+        // Handle boolean conversion from various formats
+        if (typeof value === 'string') {
           fixed[key] = value.toLowerCase() === 'true';
+        } else if (typeof value === 'number') {
+          fixed[key] = Boolean(value);
         } else if (typeof value === 'boolean') {
           fixed[key] = value;
         }

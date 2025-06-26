@@ -15,10 +15,9 @@ export function registerFetchTool(tools: ToolRegistry, server: Server) {
         "startIndex?": type("number").describe(
           "Supports paginated retrieval of content.",
         ),
-        "raw?": type({
-          type: "'boolean'",
-          description: "Set to true for raw HTML content, false for Markdown",
-        }),
+        "raw?": type("boolean").describe(
+          "Set to true for raw HTML content, false for Markdown",
+        ),
       },
     }).describe(
       "Reads and returns the content of any web page. Returns the content in Markdown format by default, or can return raw HTML if raw=true parameter is set. Supports pagination through maxLength and startIndex parameters.",
