@@ -1,6 +1,5 @@
 import { type, type Type } from "arktype";
 import { formatMcpError } from "./formatMcpError.js";
-import type { Simplify } from './types';
 import { logger } from "./logger.js";
 
 type Result = {};
@@ -40,7 +39,7 @@ const resultSchema = type({
 
 type ResultSchema = typeof resultSchema.infer;
 
-type SimplifiedTool = Simplify<ToolMetadata>
+type SimplifiedTool = ToolMetadata;
 
 export class ToolRegistryClass<
   TSchema extends Type<
