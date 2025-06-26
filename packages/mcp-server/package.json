@@ -14,7 +14,7 @@
     "inspector": "npx @modelcontextprotocol/inspector bun src/index.ts",
     "release": "run-s build:*",
     "setup": "bun run ./scripts/install.ts",
-    "test": "bun test ./src/**/*.test.ts"
+    "test": "bun test ./src/**/*.test.ts ./test/**/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.0.4",
