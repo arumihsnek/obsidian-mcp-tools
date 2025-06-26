@@ -1,15 +1,27 @@
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  ErrorCode,
-  McpError,
-  type Result,
-} from "@modelcontextprotocol/sdk/types.js";
 import { type, type Type } from "arktype";
 import { formatMcpError } from "./formatMcpError.js";
+import type { Simplify } from './types';
 import { logger } from "./logger.js";
 
-interface HandlerContext {
-  server: Server;
+type Result = {};
+class McpError extends Error {
+  constructor(public code: ErrorCode, message: string) {
+    super(message);
+    this.name = 'McpError';
+  }
+}
+
+enum ErrorCode {
+  InvalidParams = 'INVALID_PARAMS',
+  InternalError = 'INTERNAL_ERROR',
+  InvalidRequest = 'INVALID_REQUEST',
+}
+
+interface HandlerContext { }
+interface ToolMetadata {
+  name: string;
+  description?: string;
+  inputSchema: any;
 }
 
 const textResult = type({
@@ -28,11 +40,8 @@ const resultSchema = type({
 
 type ResultSchema = typeof resultSchema.infer;
 
-/**
- * The ToolRegistry class represents a set of tools that can be used by
- * the server. It is a map of request schemas to request handlers
- * that provides a list of available tools and a method to handle requests.
- */
+type SimplifiedTool = Simplify<ToolMetadata>
+
 export class ToolRegistryClass<
   TSchema extends Type<
     {
@@ -76,26 +85,40 @@ export class ToolRegistryClass<
   };
 
   list = () => {
+    const simplifiedTools = Array.from(this.enabled.values()).map(schema => {
+      const tool = {
+        name: (schema.get("name").toJsonSchema() as any).const,
+        description: schema.description,
+        inputSchema: schema.get("arguments").toJsonSchema(),
+      } as SimplifiedTool;
+
+      function simplifySchema(obj: any) {
+        if (typeof obj !== 'object' || obj === null) return;
+
+        if (obj.hasOwnProperty('additionalProperties')) {
+          delete obj.additionalProperties;
+        }
+        for (const key in obj) {
+          if (typeof obj[key] === 'object') {
+            simplifySchema(obj[key]);
+          }
+
+          const unsupportedKeys = ['const', 'exclusiveMinimum'];
+          if (unsupportedKeys.includes(key)) {
+            delete obj[key];
+          }
+        }
+      }
+
+      simplifySchema(tool.inputSchema);
+      return tool;
+    });
+
     return {
-      tools: Array.from(this.enabled.values()).map((schema) => {
-        return {
-          // @ts-expect-error We know the const property is present for a string
-          name: schema.get("name").toJsonSchema().const,
-          description: schema.description,
-          inputSchema: schema.get("arguments").toJsonSchema(),
-        };
-      }),
+      tools: simplifiedTools,
     };
   };
 
-  /**
-   * MCP SDK sends boolean values as "true" or "false". This method coerces the boolean
-   * values in the request parameters to the expected type.
-   *
-   * @param schema Arktype schema
-   * @param params MCP request parameters
-   * @returns MCP request parameters with corrected boolean values
-   */
   private coerceBooleanParams = <Schema extends TSchema>(
     schema: Schema,
     params: Schema["infer"],
@@ -129,7 +152,6 @@ export class ToolRegistryClass<
           const validParams = schema.assert(
             this.coerceBooleanParams(schema, params),
           );
-          // return await to handle runtime errors here
           return await handler(validParams, context);
         }
       }
