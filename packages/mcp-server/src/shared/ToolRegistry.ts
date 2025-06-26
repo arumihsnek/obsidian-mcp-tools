@@ -95,18 +95,41 @@ export class ToolRegistryClass<
       function simplifySchema(obj: any) {
         if (typeof obj !== 'object' || obj === null) return;
 
-        if (Object.prototype.hasOwnProperty.call(obj, 'additionalProperties')) {
-          delete obj.additionalProperties;
-        }
+        // First, recurse into children
         for (const key in obj) {
           if (typeof obj[key] === 'object') {
             simplifySchema(obj[key]);
           }
+        }
 
-          const unsupportedKeys = ['const', 'exclusiveMinimum'];
-          if (unsupportedKeys.includes(key)) {
-            delete obj[key];
+        // Process anyOf array of const objects -> convert to enum
+        if (obj.anyOf && Array.isArray(obj.anyOf)) {
+          const allConst = obj.anyOf.every((item: any) => 
+            item && typeof item === 'object' && item.const !== undefined
+          );
+          if (allConst) {
+            obj.enum = obj.anyOf.map((item: any) => item.const);
+            delete obj.anyOf;
           }
+        }
+
+        // Replace single const with enum
+        if (obj.const !== undefined) {
+          obj.enum = [obj.const];
+          delete obj.const;
+        }
+
+        // Adjust exclusiveMinimum: true -> increment minimum by 1
+        if (obj.exclusiveMinimum === true && typeof obj.minimum === 'number') {
+          obj.minimum = obj.minimum + 1;
+          delete obj.exclusiveMinimum;
+        } else if (obj.exclusiveMinimum !== undefined) {
+          delete obj.exclusiveMinimum;
+        }
+
+        // Remove additionalProperties
+        if (obj.additionalProperties !== undefined) {
+          delete obj.additionalProperties;
         }
       }
 
