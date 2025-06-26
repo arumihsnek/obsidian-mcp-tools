@@ -105,7 +105,7 @@ export class ToolRegistryClass<
 
         // Remove all complex schema features
         const unsupportedFields = [
-          'prefixItems', '$defs', 'items', 
+          'prefixItems', '$defs', 
           'anyOf', 'allOf', 'oneOf',
           'additionalProperties', 'patternProperties',
           'dependencies', 'propertyNames'
@@ -116,6 +116,11 @@ export class ToolRegistryClass<
             delete obj[field];
           }
         });
+
+        // Handle arrays - ensure they have minimal items definition
+        if (obj.type === 'array' && !obj.items) {
+          obj.items = { type: 'string' };
+        }
 
         // Convert const to enum if needed
         if (obj.const !== undefined) {
