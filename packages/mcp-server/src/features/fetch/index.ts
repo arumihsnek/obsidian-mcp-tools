@@ -15,8 +15,8 @@ export function registerFetchTool(tools: ToolRegistry, server: Server) {
         "startIndex?": type("number").describe(
           "Supports paginated retrieval of content.",
         ),
-        "raw?": type("boolean").describe(
-          "Returns raw HTML content if raw=true.",
+        "raw?": type("string").enum(["true", "false"]).describe(
+          "Set to 'true' for raw HTML content, 'false' for Markdown",
         ),
       },
     }).describe(
