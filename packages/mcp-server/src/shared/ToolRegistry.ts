@@ -201,7 +201,7 @@ export class ToolRegistryClass<
         const handler = this.get(schema);
         if (!handler) continue;
         const nameField = schema.get("name");
-        const toolName = nameField.def.value;
+        const toolName = (nameField.def.value as string).replace(/^"|"$/g, '');
         if (toolName === params.name) {
           const validParams = schema.assert(
             this.coerceBooleanParams(schema, params),
@@ -209,7 +209,9 @@ export class ToolRegistryClass<
           return await handler(validParams, context);
         }
       }
-      const availableTools = Array.from(this.enabled).map(s => s.get("name").def.value);
+      const availableTools = Array.from(this.enabled).map(s => 
+        (s.get("name").def.value as string).replace(/^"|"$/g, '')
+      );
       throw new McpError(
         ErrorCode.InvalidRequest,
         `Unknown tool: ${params.name}. Available tools: ${availableTools.join(', ')}`,
