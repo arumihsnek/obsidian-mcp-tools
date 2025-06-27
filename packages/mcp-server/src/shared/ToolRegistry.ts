@@ -71,11 +71,12 @@ export class ToolRegistryClass<
     if (this.has(schema)) {
       throw new Error(`Tool already registered: ${schema.get("name")}`);
     }
-    this.enable(schema);
-    return super.set(
+    const result = super.set(
       schema as unknown as TSchema,
       handler as unknown as THandler,
     );
+    this.enable(schema);
+    return result;
   }
 
   enable = <Schema extends TSchema>(schema: Schema) => {
