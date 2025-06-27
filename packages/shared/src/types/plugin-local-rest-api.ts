@@ -19,7 +19,7 @@ export const ApiError = type({
  */
 export const ApiNoteJson = type({
   content: "string",
-  frontmatter: type({ // CAMBIO: Usar .and("Record<string, unknown>") para permitir propiedades adicionales
+  "frontmatter?": type({ // CAMBIO: Hacer frontmatter opcional
     "tags?": "string[]",
     "description?": "string",
   }).and("Record<string, unknown>"),
@@ -183,7 +183,7 @@ export const ApiVaultDirectoryResponse = type({
  * Results are only returned for non-falsy matches
  */
 export const ApiVaultFileResponse = type({
-  frontmatter: type({ // CAMBIO: Usar .and("Record<string, unknown>") para permitir propiedades adicionales
+  "frontmatter?": type({ // CAMBIO: Hacer frontmatter opcional
     "tags?": "string[]",
     description: "string?",
   }).and("Record<string, unknown>"),
