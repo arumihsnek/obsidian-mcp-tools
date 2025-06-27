@@ -88,24 +88,24 @@ export class ToolRegistryClass<
       context: HandlerContext,
     ) => ResultSchema | Promise<ResultSchema>,
   ) {
-    if (this.has(schema as TSchema)) {
+    if (this.has(schema as unknown as TSchema)) {
       throw new Error(`Tool already registered: ${schema.get("name")}`);
     }
     const result = super.set(
       schema as unknown as TSchema,
       handler as unknown as THandler,
     );
-    this.enable(schema as TSchema);
+    this.enable(schema as unknown as TSchema);
     return result;
   }
 
   enable = <Schema extends TypeWithDef<ToolSchema>>(schema: Schema) => {
-    this.enabled.add(schema as TSchema);
+    this.enabled.add(schema as unknown as TSchema);
     return this;
   };
 
   disable = <Schema extends TypeWithDef<ToolSchema>>(schema: Schema) => {
-    this.enabled.delete(schema as TSchema);
+    this.enabled.delete(schema as unknown as TSchema);
     return this;
   };
 
