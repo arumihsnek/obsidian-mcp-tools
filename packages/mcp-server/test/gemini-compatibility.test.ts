@@ -75,7 +75,7 @@ describe("Gemini Compatibility", () => {
     // Test error message
     try {
       await tools.dispatch('gemini', { name: "non-existent", arguments: {} }, {});
-      fail("Should have thrown");
+      throw new Error("Should have thrown");
     } catch (error: any) {
       expect(error.message).toContain("Unknown tool: non-existent");
       expect(error.message).toContain("Available tools: bool-test");
