@@ -197,13 +197,14 @@ export class ToolRegistryClass<
       );
     } catch (error) {
       const formattedError = formatMcpError(error);
-      logger.error(`Error handling ${params.name}`, {
+      const logData = {
         ...formattedError,
         message: formattedError.message,
         stack: formattedError.stack,
         error,
         params,
-      });
+      };
+      logger.error(`Error handling ${params.name}`, logData);
       throw formattedError;
     }
   };

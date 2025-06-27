@@ -65,11 +65,12 @@ export class ObsidianMcpServer {
         );
         return response;
       } catch (error) {
-        logger.error("Tool dispatch error", { error });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error("Tool dispatch error", { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
         return {
           content: [{
             type: "text",
-            text: `Error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Error: ${errorMessage}`
           }],
           isError: true
         };
