@@ -2,6 +2,24 @@ import { type, type Type } from "arktype";
 import { formatMcpError } from "./formatMcpError.js";
 import { logger } from "./logger.js";
 
+interface JsonSchema {
+  type?: string;
+  const?: unknown;
+  enum?: unknown[];
+  [key: string]: unknown;
+}
+
+interface TypeWithDef<T> {
+  def?: {
+    value?: T;
+  };
+  has(key: string): boolean;
+  get(key: string): TypeWithDef<unknown>;
+  toJsonSchema(): JsonSchema;
+  expression: string;
+  description?: string;
+}
+
 type Result = {
   content: Array<{
     type: string;
@@ -47,13 +65,10 @@ type ResultSchema = typeof resultSchema.infer;
 type SimplifiedTool = ToolMetadata;
 
 export class ToolRegistryClass<
-  TSchema extends Type<
-    {
-      name: string;
-      arguments?: Record<string, unknown>;
-    },
-    {}
-  >,
+  TSchema extends TypeWithDef<{
+    name: string;
+    arguments?: Record<string, unknown>;
+  }>,
   THandler extends (
     request: TSchema["infer"],
     context: HandlerContext,
@@ -62,13 +77,16 @@ export class ToolRegistryClass<
   private enabled = new Set<TSchema>();
 
   register<
-    Schema extends TSchema,
+    Schema extends TypeWithDef<{
+      name: string;
+      arguments?: Record<string, unknown>;
+    }>,
     Handler extends (
-      request: Schema["infer"],
+      request: { name: string; arguments?: Record<string, unknown> },
       context: HandlerContext,
     ) => ResultSchema | Promise<ResultSchema>,
   >(schema: Schema, handler: Handler) {
-    if (this.has(schema)) {
+    if (this.has(schema as unknown as TSchema)) {
       throw new Error(`Tool already registered: ${schema.get("name")}`);
     }
     const result = super.set(
@@ -212,12 +230,22 @@ export class ToolRegistryClass<
         try {
           // Try to get name from def.value first
           const nameField = schema.get("name");
+          let toolName = 'unknown';
           if (nameField.def?.value) {
-            toolName = (nameField.def.value as string).replace(/^"|"$/g, '');
+            toolName = String(nameField.def.value).replace(/^"|"$/g, '');
           } else {
-            // Fall back to JsonSchema extraction
-            const nameJsonSchema = nameField.toJsonSchema();
-            toolName = (nameJsonSchema.const || nameJsonSchema.enum?.[0] || 'unknown') as string;
+            try {
+              const nameJsonSchema = nameField.toJsonSchema();
+              if (typeof nameJsonSchema === 'object' && nameJsonSchema !== null) {
+                toolName = String(
+                  (nameJsonSchema as {const?: unknown}).const ?? 
+                  ((nameJsonSchema as {enum?: unknown[]}).enum?.[0]) ?? 
+                  'unknown'
+                );
+              }
+            } catch (error) {
+              logger.error('Error parsing tool name schema', {error});
+            }
           }
           if (toolName === params.name) {
             const validParams = new Function("return " + schema.expression)()(
