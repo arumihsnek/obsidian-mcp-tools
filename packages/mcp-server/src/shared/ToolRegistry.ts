@@ -198,7 +198,8 @@ export class ToolRegistryClass<
   ) => {
     try {
       for (const [schema, handler] of this.entries()) {
-        const toolName = (schema.get("name").toJsonSchema() as any).const;
+        const nameField = schema.get("name");
+        const toolName = nameField.def.value;
         if (toolName === params.name) {
           const validParams = schema.assert(
             this.coerceBooleanParams(schema, params),
@@ -206,9 +207,10 @@ export class ToolRegistryClass<
           return await handler(validParams, context);
         }
       }
+      const availableTools = Array.from(this.enabled).map(s => s.get("name").def.value);
       throw new McpError(
         ErrorCode.InvalidRequest,
-        `Unknown tool: ${params.name}`,
+        `Unknown tool: ${params.name}. Available tools: ${availableTools.join(', ')}`,
       );
     } catch (error) {
       const formattedError = formatMcpError(error);
