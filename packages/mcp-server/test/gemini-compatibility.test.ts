@@ -12,6 +12,7 @@ describe("Gemini Compatibility", () => {
         name: '"test-tool"',
         arguments: {
           url: "string",
+          "tags?": "string[]",
           "raw?": type("boolean").describe("Test parameter"),
           "format?": type('"markdown" | "html"')
         },
@@ -27,9 +28,11 @@ describe("Gemini Compatibility", () => {
     expect(json).not.toContain("anyOf");
     expect(json).not.toContain("prefixItems");
     
-    // Verify arrays have items definition (only if present)
-    if (list.tools[0].inputSchema.properties.format) {
-      expect(json).toContain('"items"');
+    // Verify arrays have items definition
+    const tagsProp = list.tools[0].inputSchema.properties.tags;
+    if (tagsProp) {
+      expect(tagsProp.type).toBe("array");
+      expect(tagsProp.items).toEqual({ type: "string" });
     }
     
     // Verify enums are strings
