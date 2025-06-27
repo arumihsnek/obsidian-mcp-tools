@@ -12,6 +12,7 @@ describe("parseTemplateParameters", () => {
 
   test("parses single parameter without description", () => {
     const content = '<% tp.user.promptArg("name") %>';
+    // La función ahora detecta tp.user.promptArg
     const result = parseTemplateParameters(content);
     PromptParameterSchema.array().assert(result);
     expect(result).toEqual([{ name: "name" }]);
@@ -19,6 +20,7 @@ describe("parseTemplateParameters", () => {
 
   test("parses single parameter with description", () => {
     const content = '<% tp.user.promptArg("name", "Enter your name") %>';
+    // La función ahora detecta tp.user.promptArg
     const result = parseTemplateParameters(content);
     PromptParameterSchema.array().assert(result);
     expect(result).toEqual([{ name: "name", description: "Enter your name" }]);
@@ -29,6 +31,7 @@ describe("parseTemplateParameters", () => {
       <% tp.user.promptArg("name", "Enter your name") %>
       <% tp.user.promptArg("age", "Enter your age") %>
     `;
+    // La función ahora detecta tp.user.promptArg
     const result = parseTemplateParameters(content);
     PromptParameterSchema.array().assert(result);
     expect(result).toEqual([
@@ -42,6 +45,7 @@ describe("parseTemplateParameters", () => {
     <% invalid.syntax %>
     <% tp.user.promptArg("name", "Enter your name") %>
     `;
+    // La función ahora detecta tp.user.promptArg
     const result = parseTemplateParameters(content);
     PromptParameterSchema.array().assert(result);
     expect(result).toEqual([{ name: "name", description: "Enter your name" }]);

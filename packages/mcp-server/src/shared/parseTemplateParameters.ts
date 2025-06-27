@@ -10,9 +10,9 @@ const CallExpressionSchema = type({
     object: {
       type: "'MemberExpression'",
       object: { name: "'tp'" },
-      property: { name: "'mcpTools'" },
+      property: { name: "'user'" },
     },
-    property: { name: "'prompt'" },
+    property: { name: "'promptArg'" },
   },
   arguments: type({ type: "'Literal'", value: "string" }).array(),
 });

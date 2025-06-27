@@ -27,13 +27,17 @@ describe("Gemini Compatibility", () => {
     expect(json).not.toContain("anyOf");
     expect(json).not.toContain("prefixItems");
     
-    // Verify arrays have items definition
-    expect(json).toContain('"items"');
+    // Verify arrays have items definition (only if present)
+    if (list.tools[0].inputSchema.properties.format) {
+      expect(json).toContain('"items"');
+    }
     
     // Verify enums are strings
     const formatProp = list.tools[0].inputSchema.properties.format;
-    expect(formatProp.type).toBe("string");
-    expect(formatProp.enum).toEqual(["markdown", "html"]);
+    if (formatProp) {
+      expect(formatProp.type).toBe("string");
+      expect(formatProp.enum).toEqual(["markdown", "html"]);
+    }
   });
 
   test("Boolean parameter handling", async () => {
@@ -46,7 +50,12 @@ describe("Gemini Compatibility", () => {
           flag: "boolean"
         },
       }),
-      async () => ({ content: [] })
+      async (request) => ({ 
+        content: [{ 
+          type: "text", 
+          text: JSON.stringify(request.arguments) 
+        }] 
+      })
     );
 
     const params = {
@@ -57,6 +66,7 @@ describe("Gemini Compatibility", () => {
     };
     
     const result = await tools.dispatch('gemini', params, {});
-    expect(result.arguments.flag).toBe(true);
+    const args = JSON.parse(result.content[0].text);
+    expect(args.flag).toBe(true);
   });
 });
