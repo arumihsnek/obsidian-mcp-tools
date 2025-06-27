@@ -9,7 +9,7 @@ interface JsonSchema {
   [key: string]: unknown;
 }
 
-interface TypeWithDef<T> {
+interface TypeWithDef<T> extends Type<T, {}> {
   def?: {
     value?: T;
   };
@@ -18,6 +18,8 @@ interface TypeWithDef<T> {
   toJsonSchema(): JsonSchema;
   expression: string;
   description?: string;
+  infer: T;
+  exclude(type: string): TypeWithDef<T>;
 }
 
 type Result = {
@@ -64,29 +66,28 @@ type ResultSchema = typeof resultSchema.infer;
 
 type SimplifiedTool = ToolMetadata;
 
+type ToolSchema = {
+  name: string;
+  arguments?: Record<string, unknown>;
+};
+
 export class ToolRegistryClass<
-  TSchema extends TypeWithDef<{
-    name: string;
-    arguments?: Record<string, unknown>;
-  }>,
+  TSchema extends TypeWithDef<ToolSchema>,
   THandler extends (
-    request: TSchema["infer"],
+    request: ToolSchema,
     context: HandlerContext,
   ) => Promise<Result>,
 > extends Map<TSchema, THandler> {
   private enabled = new Set<TSchema>();
 
-  register<
-    Schema extends TypeWithDef<{
-      name: string;
-      arguments?: Record<string, unknown>;
-    }>,
-    Handler extends (
-      request: { name: string; arguments?: Record<string, unknown> },
+  register<Schema extends TypeWithDef<ToolSchema>>(
+    schema: Schema,
+    handler: (
+      request: ToolSchema,
       context: HandlerContext,
     ) => ResultSchema | Promise<ResultSchema>,
-  >(schema: Schema, handler: Handler) {
-    if (this.has(schema as unknown as TSchema)) {
+  ) {
+    if (this.has(schema)) {
       throw new Error(`Tool already registered: ${schema.get("name")}`);
     }
     const result = super.set(
@@ -188,8 +189,8 @@ export class ToolRegistryClass<
 
   private coerceBooleanParams = <Schema extends TSchema>(
     schema: Schema,
-    params: Schema["infer"],
-  ): Schema["infer"] => {
+    params: ToolSchema,
+  ): ToolSchema => {
     const args = params.arguments;
     let argsSchema;
     if (schema.has("arguments")) {
@@ -197,7 +198,7 @@ export class ToolRegistryClass<
     }
     if (!args || !argsSchema) return params;
 
-    const fixed = { ...params.arguments };
+    const fixed = { ...args };
     for (const [key, value] of Object.entries(args)) {
         if (argsSchema.has(key)) {
             const valueSchema = argsSchema.get(key).exclude("undefined");
@@ -217,9 +218,9 @@ export class ToolRegistryClass<
     return { ...params, arguments: fixed };
   };
 
-  dispatch = async <Schema extends TSchema>(
+  dispatch = async (
     modelType: 'openai' | 'gemini' | 'anthropic' = 'openai',
-    params: Schema["infer"],
+    params: ToolSchema,
     context: HandlerContext,
   ) => {
     try {
@@ -292,18 +293,6 @@ export class ToolRegistryClass<
 }
 
 export type ToolRegistry = ToolRegistryClass<
-  Type<
-    {
-      name: string;
-      arguments?: Record<string, unknown>;
-    },
-    {}
-  >,
-  (
-    request: {
-      name: string;
-      arguments?: Record<string, unknown>;
-    },
-    context: HandlerContext,
-  ) => Promise<Result>
+  TypeWithDef<ToolSchema>,
+  (request: ToolSchema, context: HandlerContext) => Promise<Result>
 >;
