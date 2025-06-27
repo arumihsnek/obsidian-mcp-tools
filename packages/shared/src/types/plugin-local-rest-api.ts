@@ -19,14 +19,18 @@ export const ApiError = type({
  */
 export const ApiNoteJson = type({
   content: "string",
-  frontmatter: "Record<string, string>",
+  frontmatter: type({ // CAMBIO: Hacer frontmatter más específico y flexible
+    "tags?": "string[]", // CAMBIO: Hacer tags opcional dentro de frontmatter
+    "description?": "string",
+    "...": "unknown", // Permitir otros campos en frontmatter
+  }),
   path: "string",
   stat: {
     ctime: "number",
     mtime: "number",
     size: "number",
   },
-  tags: "string[]",
+  "tags?": "string[]", // CAMBIO: Hacer tags opcional a nivel raíz
 });
 
 /**
@@ -181,7 +185,7 @@ export const ApiVaultDirectoryResponse = type({
  */
 export const ApiVaultFileResponse = type({
   frontmatter: {
-    tags: "string[]",
+    "tags?": "string[]", // CAMBIO: Hacer tags opcional
     description: "string?",
   },
   content: "string",
