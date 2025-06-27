@@ -35,15 +35,12 @@ export function parseTemplateParameters(content: string): PromptParameter[] {
    * The tags are in the format `<% tp.mcpTools.prompt("name", "description") %>`
    * and may contain additional modifiers.
    */
-  const TEMPLATER_START_TAG = /<%[*-_]*/g;
-  const TEMPLATER_END_TAG = /[-_]*%>/g;
-
   // Split content by template tags
-  const parts = content.split(TEMPLATER_START_TAG);
+  const templateTags = content.match(/<%-*[\s\S]*?-*%>/g) || [];
   const parameters: PromptParameter[] = [];
-  for (const part of parts) {
-    if (!TEMPLATER_END_TAG.test(part)) continue;
-    const code = part.split(TEMPLATER_END_TAG)[0].trim();
+  for (const tag of templateTags) {
+    // Extract inner code by removing template delimiters
+    const code = tag.replace(/^<%-*/, '').replace(/-*%>$/, '').trim();
 
     try {
       // Parse the extracted code with AST

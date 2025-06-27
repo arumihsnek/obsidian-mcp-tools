@@ -36,7 +36,7 @@ describe("Gemini Compatibility", () => {
     expect(formatProp.enum).toEqual(["markdown", "html"]);
   });
 
-  test("Boolean parameter handling", () => {
+  test("Boolean parameter handling", async () => {
     const tools = new ToolRegistryClass();
 
     tools.register(
