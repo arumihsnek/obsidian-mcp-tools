@@ -96,10 +96,9 @@ export class ToolRegistryClass<
       const tool = {
         name: (schema.get("name").toJsonSchema() as any).const,
         description: schema.description,
-        inputSchema: schema.get("arguments")?.toJsonSchema() ?? {
-          type: "object",
-          properties: {}
-        },
+        inputSchema: schema.has("arguments") 
+          ? schema.get("arguments").toJsonSchema() 
+          : { type: "object", properties: {} },
       } as SimplifiedTool;
 
       function simplifySchema(obj: any) {
@@ -174,22 +173,27 @@ export class ToolRegistryClass<
     params: Schema["infer"],
   ): Schema["infer"] => {
     const args = params.arguments;
-    const argsSchema = schema.get("arguments").exclude("undefined");
+    let argsSchema;
+    if (schema.has("arguments")) {
+        argsSchema = schema.get("arguments").exclude("undefined");
+    }
     if (!args || !argsSchema) return params;
 
     const fixed = { ...params.arguments };
     for (const [key, value] of Object.entries(args)) {
-      const valueSchema = argsSchema.get(key).exclude("undefined");
-      if (valueSchema.expression === "boolean") {
-        // Handle boolean conversion from various formats
-        if (typeof value === 'string') {
-          fixed[key] = value.toLowerCase() === 'true';
-        } else if (typeof value === 'number') {
-          fixed[key] = Boolean(value);
-        } else if (typeof value === 'boolean') {
-          fixed[key] = value;
+        if (argsSchema.has(key)) {
+            const valueSchema = argsSchema.get(key).exclude("undefined");
+            if (valueSchema.expression === "boolean") {
+                // Handle boolean conversion from various formats
+                if (typeof value === 'string') {
+                    fixed[key] = value.toLowerCase() === 'true';
+                } else if (typeof value === 'number') {
+                    fixed[key] = Boolean(value);
+                } else if (typeof value === 'boolean') {
+                    fixed[key] = value;
+                }
+            }
         }
-      }
     }
 
     return { ...params, arguments: fixed };
@@ -204,19 +208,42 @@ export class ToolRegistryClass<
       for (const schema of this.enabled) {
         const handler = this.get(schema);
         if (!handler) continue;
-        const nameJsonSchema = schema.get("name").toJsonSchema();
-        const toolName = nameJsonSchema.const || nameJsonSchema.enum?.[0];
-        if (toolName === params.name) {
-          const validParams = schema.assert(
-            this.coerceBooleanParams(schema, params),
-          );
-          return await handler(validParams, context);
+        let toolName: string;
+        try {
+          // Try to get name from def.value first
+          const nameField = schema.get("name");
+          if (nameField.def?.value) {
+            toolName = (nameField.def.value as string).replace(/^"|"$/g, '');
+          } else {
+            // Fall back to JsonSchema extraction
+            const nameJsonSchema = nameField.toJsonSchema();
+            toolName = (nameJsonSchema.const || nameJsonSchema.enum?.[0] || 'unknown') as string;
+          }
+          if (toolName === params.name) {
+            const validParams = new Function("return " + schema.expression)()(
+              this.coerceBooleanParams(schema, params)
+            );
+            return await handler(validParams, context);
+          }
+        } catch (error) {
+          logger.error('Error processing tool schema', { schema: schema.description, error });
         }
       }
-      const availableTools = Array.from(this.enabled).map(s => {
-        const nameJsonSchema = s.get("name").toJsonSchema();
-        return nameJsonSchema.const || nameJsonSchema.enum?.[0];
-      }).filter(Boolean);
+      const availableTools = Array.from(this.enabled).reduce<string[]>((tools, s) => {
+        try {
+          const nameField = s.get("name");
+          if (nameField.def?.value) {
+            tools.push((nameField.def.value as string).replace(/^"|"$/g, ''));
+          } else {
+            const nameJsonSchema = nameField.toJsonSchema();
+            const name = nameJsonSchema.const || nameJsonSchema.enum?.[0] || 'unknown';
+            tools.push(name as string);
+          }
+        } catch (error) {
+          logger.error('Error getting tool name', { error });
+        }
+        return tools;
+      }, []);
       throw new McpError(
         ErrorCode.InvalidRequest,
         `Unknown tool: ${params.name}. Available tools: ${availableTools.join(', ')}`,
