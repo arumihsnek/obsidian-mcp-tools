@@ -9,7 +9,7 @@ interface JsonSchema {
   [key: string]: unknown;
 }
 
-interface TypeWithDef<T> extends Type<T, {}> {
+interface TypeWithDef<T> {
   def?: {
     value?: T;
   };
@@ -18,9 +18,10 @@ interface TypeWithDef<T> extends Type<T, {}> {
   toJsonSchema(): JsonSchema;
   expression: string;
   description?: string;
-  infer: T;
   exclude(type: string): TypeWithDef<T>;
 }
+
+type TypeWithDefIntersection<T> = Type<T, {}> & TypeWithDef<T>;
 
 type Result = {
   content: Array<{
@@ -87,24 +88,24 @@ export class ToolRegistryClass<
       context: HandlerContext,
     ) => ResultSchema | Promise<ResultSchema>,
   ) {
-    if (this.has(schema)) {
+    if (this.has(schema as TSchema)) {
       throw new Error(`Tool already registered: ${schema.get("name")}`);
     }
     const result = super.set(
       schema as unknown as TSchema,
       handler as unknown as THandler,
     );
-    this.enable(schema);
+    this.enable(schema as TSchema);
     return result;
   }
 
-  enable = <Schema extends TSchema>(schema: Schema) => {
-    this.enabled.add(schema);
+  enable = <Schema extends TypeWithDef<ToolSchema>>(schema: Schema) => {
+    this.enabled.add(schema as TSchema);
     return this;
   };
 
-  disable = <Schema extends TSchema>(schema: Schema) => {
-    this.enabled.delete(schema);
+  disable = <Schema extends TypeWithDef<ToolSchema>>(schema: Schema) => {
+    this.enabled.delete(schema as TSchema);
     return this;
   };
 
@@ -293,6 +294,6 @@ export class ToolRegistryClass<
 }
 
 export type ToolRegistry = ToolRegistryClass<
-  TypeWithDef<ToolSchema>,
+  TypeWithDefIntersection<ToolSchema>,
   (request: ToolSchema, context: HandlerContext) => Promise<Result>
 >;
