@@ -198,7 +198,8 @@ export class ToolRegistryClass<
   ) => {
     try {
       for (const [schema, handler] of this.entries()) {
-        if (schema.get("name").allows(params.name)) {
+        const toolName = (schema.get("name").toJsonSchema() as any).const;
+        if (toolName === params.name) {
           const validParams = schema.assert(
             this.coerceBooleanParams(schema, params),
           );
