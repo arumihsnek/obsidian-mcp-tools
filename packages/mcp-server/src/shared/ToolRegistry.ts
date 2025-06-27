@@ -197,7 +197,9 @@ export class ToolRegistryClass<
     context: HandlerContext,
   ) => {
     try {
-      for (const [schema, handler] of this.entries()) {
+      for (const schema of this.enabled) {
+        const handler = this.get(schema);
+        if (!handler) continue;
         const nameField = schema.get("name");
         const toolName = nameField.def.value;
         if (toolName === params.name) {
