@@ -9,7 +9,7 @@ describe("Gemini Compatibility", () => {
     // Register a test tool similar to fetch
     tools.register(
       type({
-        name: "test-tool",
+        name: '"test-tool"',
         arguments: {
           url: "string",
           "tags?": "string[]",
@@ -48,7 +48,7 @@ describe("Gemini Compatibility", () => {
 
     tools.register(
       type({
-        name: "bool-test",
+        name: '"bool-test"',
         arguments: {
           flag: "boolean"
         },
