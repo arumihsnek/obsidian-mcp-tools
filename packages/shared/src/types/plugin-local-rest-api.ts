@@ -19,11 +19,10 @@ export const ApiError = type({
  */
 export const ApiNoteJson = type({
   content: "string",
-  frontmatter: type({
-    "...": "unknown", // CAMBIO: Mover el spread operator al principio
+  frontmatter: type({ // CAMBIO: Usar .and("Record<string, unknown>") para permitir propiedades adicionales
     "tags?": "string[]",
     "description?": "string",
-  }),
+  }).and("Record<string, unknown>"),
   path: "string",
   stat: {
     ctime: "number",
@@ -184,10 +183,10 @@ export const ApiVaultDirectoryResponse = type({
  * Results are only returned for non-falsy matches
  */
 export const ApiVaultFileResponse = type({
-  frontmatter: {
+  frontmatter: type({ // CAMBIO: Usar .and("Record<string, unknown>") para permitir propiedades adicionales
     "tags?": "string[]",
     description: "string?",
-  },
+  }).and("Record<string, unknown>"),
   content: "string",
   path: "string",
   stat: {
@@ -195,7 +194,7 @@ export const ApiVaultFileResponse = type({
     mtime: "number",
     size: "number",
   },
-  "tags?": "string[]", // CAMBIO: Hacer tags opcional a nivel raíz
+  "tags?": "string[]",
 });
 
 /**
