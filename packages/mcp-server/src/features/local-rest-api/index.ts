@@ -134,7 +134,7 @@ export function registerLocalRestApiTools(tools: ToolRegistry, server: Server) {
   tools.register(
     type({
       name: '"delete_active_file"',
-      arguments: "Record<string, unknown>",
+      arguments: {}, // CAMBIO: Se hizo explícito que no se esperan argumentos.
     }).describe("Delete the currently-active file in Obsidian."),
     async () => {
       await makeRequest(LocalRestAPI.ApiNoContentResponse, "/active/", {
