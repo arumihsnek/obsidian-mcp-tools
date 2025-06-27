@@ -96,7 +96,10 @@ export class ToolRegistryClass<
       const tool = {
         name: (schema.get("name").toJsonSchema() as any).const,
         description: schema.description,
-        inputSchema: schema.get("arguments").toJsonSchema(),
+        inputSchema: schema.get("arguments")?.toJsonSchema() ?? {
+          type: "object",
+          properties: {}
+        },
       } as SimplifiedTool;
 
       function simplifySchema(obj: any) {
@@ -201,8 +204,8 @@ export class ToolRegistryClass<
       for (const schema of this.enabled) {
         const handler = this.get(schema);
         if (!handler) continue;
-        const nameField = schema.get("name");
-        const toolName = (nameField.def.value as string).replace(/^"|"$/g, '');
+        const nameJsonSchema = schema.get("name").toJsonSchema();
+        const toolName = nameJsonSchema.const || nameJsonSchema.enum?.[0];
         if (toolName === params.name) {
           const validParams = schema.assert(
             this.coerceBooleanParams(schema, params),
@@ -210,9 +213,10 @@ export class ToolRegistryClass<
           return await handler(validParams, context);
         }
       }
-      const availableTools = Array.from(this.enabled).map(s => 
-        (s.get("name").def.value as string).replace(/^"|"$/g, '')
-      );
+      const availableTools = Array.from(this.enabled).map(s => {
+        const nameJsonSchema = s.get("name").toJsonSchema();
+        return nameJsonSchema.const || nameJsonSchema.enum?.[0];
+      }).filter(Boolean);
       throw new McpError(
         ErrorCode.InvalidRequest,
         `Unknown tool: ${params.name}. Available tools: ${availableTools.join(', ')}`,
