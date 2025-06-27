@@ -1,4 +1,4 @@
-import { type, type Type } from "arktype";
+import { type, type Type, Problems } from "arktype";
 import { formatMcpError } from "./formatMcpError.js";
 import { logger } from "./logger.js";
 
@@ -116,7 +116,7 @@ export class ToolRegistryClass<
       const tool = {
         name: (schema.get("name").toJsonSchema() as any).const,
         description: schema.description,
-        inputSchema: schema.has("arguments") 
+        inputSchema: schema.has && schema.has("arguments") 
           ? schema.get("arguments").toJsonSchema() 
           : { type: "object", properties: {} },
       } as SimplifiedTool;
@@ -194,8 +194,8 @@ export class ToolRegistryClass<
   ): ToolSchema => {
     const args = params.arguments;
     let argsSchema;
-    if (schema.has("arguments")) {
-        argsSchema = schema.get("arguments").exclude("undefined");
+    if (schema.has && schema.has("arguments")) {
+        argsSchema = schema.get("arguments").exclude?.("undefined") ?? schema.get("arguments");
     }
     if (!args || !argsSchema) return params;
 
@@ -250,10 +250,28 @@ export class ToolRegistryClass<
             }
           }
           if (toolName === params.name) {
-            const validParams = new Function("return " + schema.expression)()(
-              this.coerceBooleanParams(schema, params)
-            );
-            return await handler(validParams, context);
+            try {
+              const coercedParams = this.coerceBooleanParams(schema, params);
+              const result = schema(coercedParams);
+              if (result.problems) {
+                throw new McpError(
+                  ErrorCode.InvalidParams,
+                  `Invalid parameters for tool ${params.name}: ${result.problems.summary}`
+                );
+              }
+              const validParams = result.data;
+              return await handler(validParams, context);
+            } catch (error) {
+              logger.error('Error validating tool parameters', { 
+                tool: params.name, 
+                error,
+                params
+              });
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                `Invalid parameters for tool ${params.name}`
+              );
+            }
           }
         } catch (error) {
           logger.error('Error processing tool schema', { schema: schema.description, error });
