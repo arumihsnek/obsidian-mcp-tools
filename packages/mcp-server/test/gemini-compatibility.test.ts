@@ -69,7 +69,7 @@ describe("Gemini Compatibility", () => {
     };
     
     const result = await tools.dispatch('gemini', params, {});
-    const args = JSON.parse(result.content[0].text);
+    const args = JSON.parse(result.content[0].text || "");
     expect(args.flag).toBe(true);
   });
 });

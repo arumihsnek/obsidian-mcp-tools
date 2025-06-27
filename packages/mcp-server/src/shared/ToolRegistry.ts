@@ -2,7 +2,12 @@ import { type, type Type } from "arktype";
 import { formatMcpError } from "./formatMcpError.js";
 import { logger } from "./logger.js";
 
-type Result = {};
+type Result = {
+  content: Array<{
+    type: string;
+    text?: string;
+  }>;
+};
 class McpError extends Error {
   constructor(public code: ErrorCode, message: string) {
     super(message);
