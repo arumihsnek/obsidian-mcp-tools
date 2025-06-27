@@ -249,7 +249,7 @@ export class ToolRegistryClass<
               logger.error('Error parsing tool name schema', {error});
             }
           }
-          if (toolName === params.name) {
+          if (toolName.toLowerCase() === params.name.toLowerCase()) {
             try {
               const coercedParams = this.coerceBooleanParams(schema, params);
               const result = schema(coercedParams);
@@ -292,10 +292,19 @@ export class ToolRegistryClass<
         }
         return tools;
       }, []);
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Unknown tool: ${params.name}. Available tools: ${availableTools.join(', ')}`,
-      );
+      // Verificar si el tool existe pero hay problema de case sensitivity
+      const matchingTool = availableTools.find(t => t.toLowerCase() === params.name.toLowerCase());
+      if (matchingTool) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Tool name case mismatch: Did you mean '${matchingTool}'? Available tools: ${availableTools.join(', ')}`,
+        );
+      } else {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Unknown tool: ${params.name}. Available tools: ${availableTools.join(', ')}`,
+        );
+      }
     } catch (error) {
       const formattedError = formatMcpError(error);
       const logData = {
