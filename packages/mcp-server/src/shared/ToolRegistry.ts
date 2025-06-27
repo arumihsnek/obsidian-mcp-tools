@@ -103,6 +103,15 @@ export class ToolRegistryClass<
           }
         }
 
+        // Handle anyOf: convert to enum if possible
+        if (obj.anyOf) {
+          // Check if every element in anyOf is a const string
+          if (Array.isArray(obj.anyOf) && obj.anyOf.every((item: any) => item.const && typeof item.const === 'string')) {
+            obj.enum = obj.anyOf.map((item: any) => item.const);
+            obj.type = "string";
+          }
+        }
+
         // Remove all complex schema features
         const unsupportedFields = [
           'prefixItems', '$defs', 
