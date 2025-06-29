@@ -57,35 +57,47 @@ export function registerFetchTool(tools: ToolRegistry, server: Server) {
           prefix = `Content type ${contentType} cannot be simplified to markdown, but here is the raw content:\n`;
         }
 
+        const originalContent = content;
+        const totalLength = originalContent.length;
         const maxLength = args.maxLength || 5000;
         const startIndex = args.startIndex || 0;
-        const totalLength = content.length;
 
-        if (totalLength > maxLength) {
-          content = content.substring(startIndex, startIndex + maxLength);
-          content += `\n\n<error>Content truncated. Call the fetch tool with a startIndex of ${
-            startIndex + maxLength
-          } to get more content.</error>`;
+        if (startIndex >= totalLength && totalLength > 0) {
+          return {
+            content: [{
+              type: "text",
+              text: `Content of ${args.url} has a total length of ${totalLength}. The requested startIndex of ${startIndex} is out of bounds.`,
+            }],
+          };
+        }
+
+        const endIndex = Math.min(startIndex + maxLength, totalLength);
+        let contentSlice = originalContent.substring(startIndex, endIndex);
+
+        const hasMore = endIndex < totalLength;
+
+        if (hasMore) {
+          contentSlice += `\n\n<error>Content truncated. Call the fetch tool with a startIndex of ${endIndex} to get more content.</error>`;
         }
 
         logger.debug("URL fetched successfully", {
           url: args.url,
-          contentLength: content.length,
+          contentLength: contentSlice.length,
         });
 
         return {
           content: [
             {
               type: "text",
-              text: `${prefix}Contents of ${args.url}:\n${content}`,
+              text: `${prefix}Contents of ${args.url}:\n${contentSlice}`,
             },
             {
               type: "text",
               text: `Pagination: ${JSON.stringify({
                 totalLength,
                 startIndex,
-                endIndex: startIndex + content.length,
-                hasMore: true,
+                endIndex,
+                hasMore,
               })}`,
             },
           ],
